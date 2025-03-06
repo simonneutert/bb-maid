@@ -11,6 +11,14 @@ the user for confirmation before deleting any directories.
 
 ---
 
+## Concept
+
+Think of this script like a helper, that keeps your digital household clean. Each directory is like a container of food, and inside each container, there’s a label (cleanup-maid-YYYY-MM-DD) that tells you when it expires.
+
+If today’s date is past the expiration date on the label, the script asks you, “Hey, this has expired—should I throw it out?” If you say yes, it cleans out the whole container (directory), just like you’d toss out spoiled food to keep your fridge fresh.
+
+This way, your system stays clean, just like your fridge stays free of expired leftovers (most of the time)!
+
 ## Table of Contents<!-- omit in toc -->
 
 - [Prerequisites](#prerequisites)
