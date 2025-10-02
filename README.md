@@ -24,7 +24,7 @@ This way, your system stays clean, just like your fridge stays free of expired l
 - [Concept](#concept)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
-  - [Quick Install with bbin (Requires Java)](#quick-install-with-bbin-requires-java)
+  - [Quick Install with bbin (Recommended)](#quick-install-with-bbin-recommended)
   - [Manual Installation](#manual-installation)
     - [Option 1: Add to PATH](#option-1-add-to-path)
     - [Option 2: Script-adjacent bb.edn](#option-2-script-adjacent-bbedn)
@@ -33,6 +33,10 @@ This way, your system stays clean, just like your fridge stays free of expired l
   - [Cleaning Up Expired Directories](#cleaning-up-expired-directories)
   - [Creating Cleanup Files](#creating-cleanup-files)
   - [Example](#example)
+- [Tab Completion](#tab-completion)
+  - [What Gets Completed](#what-gets-completed)
+  - [Setup for Zsh](#setup-for-zsh)
+  - [Setup for Bash](#setup-for-bash)
 - [How It Works](#how-it-works)
 - [License](#license)
 
@@ -156,6 +160,54 @@ Alternatively, you can manually create a cleanup file using:
 ```sh
 touch cleanup-maid-$(date -d "+7 days" +"%Y-%m-%d" 2>/dev/null || date -v+7d +"%Y-%m-%d")
 ```
+
+## Tab Completion
+
+Tab completion helps you work faster by auto-completing commands and suggesting common durations.
+
+### What Gets Completed
+
+- `bb-maid <TAB>` → suggests `clean-in` and shows available directories
+- `bb-maid clean-in <TAB>` → suggests common durations (1d, 7d, 14d, 30d, 60d, 90d)
+- Directory paths are auto-completed throughout
+
+### Setup for Zsh
+
+Add this to your `~/.zshrc`:
+
+```sh
+# bb-maid tab completion
+# If installed via bbin:
+fpath=(~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions $fpath)
+
+autoload -Uz compinit && compinit
+```
+
+```sh
+# If cloned from git:
+fpath=(/path/to/your/clone/bb-maid/completions $fpath)
+
+autoload -Uz compinit && compinit
+```
+
+Then restart your terminal or run `source ~/.zshrc`.
+
+### Setup for Bash
+
+Add this to your `~/.bashrc`:
+
+```sh
+# bb-maid tab completion
+# If installed via bbin:
+source ~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions/bb-maid.bash
+```
+
+```sh
+# If cloned from git:
+source /path/to/your/clone/bb-maid/completions/bb-maid.bash
+```
+
+Then restart your terminal or run `source ~/.bashrc`.
 
 ## How It Works
 
