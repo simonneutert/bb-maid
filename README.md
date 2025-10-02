@@ -178,7 +178,7 @@ Add this to your `~/.zshrc`:
 ```sh
 # bb-maid tab completion
 # If installed via bbin:
-fpath=(~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions $fpath)
+fpath=(~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions(N) $fpath)
 
 autoload -Uz compinit && compinit
 ```
@@ -199,7 +199,9 @@ Add this to your `~/.bashrc`:
 ```sh
 # bb-maid tab completion
 # If installed via bbin:
-source ~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions/bb-maid.bash
+for f in ~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions/bb-maid.bash(N); do
+  source "$f"
+done
 ```
 
 ```sh
