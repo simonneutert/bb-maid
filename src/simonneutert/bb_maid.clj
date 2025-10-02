@@ -78,13 +78,18 @@
   (let [command (first args)
         arg (second args)]
     (cond
+      (= command "clean")
+      (if arg
+        (search-and-delete arg)
+        (callout {:type :error} (bling [:red "Error:"] " Please specify a directory to clean")))
+      
       (= command "clean-in")
       (if arg
         (create-cleanup-file arg)
-        (println "Usage: bb-maid clean-in <duration> (e.g., '7d' for 7 days)"))
-      
-      command
-      (search-and-delete command)
+        (callout {:type :error} (bling [:red "Error:"] " Please specify a duration (e.g., '7d' for 7 days)")))
       
       :else
-      (println "Usage:\n  bb-maid <entry-directory>  - Clean up expired directories\n  bb-maid clean-in <duration> - Create a cleanup file (e.g., '7d' for 7 days)"))))
+      (do
+        (println "Usage:")
+        (println "  bb-maid clean <directory>    - Clean up expired directories")
+        (println "  bb-maid clean-in <duration>  - Create a cleanup file (e.g., '7d' for 7 days)")))))

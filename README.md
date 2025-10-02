@@ -125,7 +125,7 @@ bb tasks
 
 **With bbin installation:**
 ```sh
-bb-maid /path/to/start
+bb-maid clean /path/to/start
 ```
 
 **With local repository:**
@@ -167,9 +167,9 @@ Tab completion helps you work faster by auto-completing commands and suggesting 
 
 ### What Gets Completed
 
-- `bb-maid <TAB>` → suggests `clean-in` and shows available directories
+- `bb-maid <TAB>` → suggests `clean` and `clean-in` commands
+- `bb-maid clean <TAB>` → shows available directories
 - `bb-maid clean-in <TAB>` → suggests common durations (1d, 7d, 14d, 30d, 60d, 90d)
-- Directory paths are auto-completed throughout
 
 ### Setup for Zsh
 
@@ -178,9 +178,7 @@ Add this to your `~/.zshrc`:
 ```sh
 # bb-maid tab completion
 # If installed via bbin:
-fpath=(~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions(N) $fpath)
-
-autoload -Uz compinit && compinit
+fpath=(~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions(N) $fpath) && autoload -Uz compinit && compinit
 ```
 
 ```sh

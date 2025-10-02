@@ -1,9 +1,18 @@
 #compdef bb-maid
 
 _bb-maid() {
-    local -a commands
+    local -a commands durations
     commands=(
-        'clean-in:Create a cleanup file with expiration date (e.g., bb-maid clean-in 7d)'
+        'clean:Clean up expired directories'
+        'clean-in:Create a cleanup file with expiration date'
+    )
+    durations=(
+        '1d:1 day'
+        '7d:7 days'
+        '14d:14 days'
+        '30d:30 days'
+        '60d:60 days'
+        '90d:90 days'
     )
 
     _arguments -C \
@@ -12,20 +21,15 @@ _bb-maid() {
 
     case $state in
         command)
-            if [[ ${words[2]} == "clean-in" ]]; then
-                _message 'duration (e.g., 7d for 7 days)'
-            else
-                _files -/
-                _describe 'command' commands
-            fi
+            _describe 'command' commands
             ;;
         args)
             case ${words[2]} in
-                clean-in)
-                    _message 'duration (e.g., 7d for 7 days)'
-                    ;;
-                *)
+                clean)
                     _files -/
+                    ;;
+                clean-in)
+                    _describe 'duration' durations
                     ;;
             esac
             ;;
