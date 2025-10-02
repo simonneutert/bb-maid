@@ -1,4 +1,6 @@
 {:deps {io.github.paintparty/bling {:mvn/version "0.4.2"}}
+ :paths ["src"]
+ :bbin/bin {bb-maid {:main-opts ["-m" "simonneutert.bb-maid"]}}
  :tasks {clean {:doc "Run cleanup script"
                 :task (shell "bb maid.clj" (first *command-line-args*))}
          clean-in {:doc "Create a cleanup file with expiration date (e.g., 'bb clean-in 7d')"
