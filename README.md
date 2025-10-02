@@ -5,13 +5,12 @@ point, identifies files named in the format `cleanup-maid-YYYY-MM-DD`, and
 deletes their parent directories if the date has passed. The script will prompt
 the user for confirmation before deleting any directories.
 
----
-
-![bb-maid-logo](https://github.com/user-attachments/assets/2e634a95-dd49-4f33-8bb2-87194753b0f7)
+<img width="auto" height="200" alt="bbmaid602c47af-06c1-4ed8-8ae7-d9464a6ac571" src="https://github.com/user-attachments/assets/8e4dee17-6a38-4724-884c-5022a09868d4" />
 
 ---
 
 ## Concept
+
 
 Think of this script like a helper, that keeps your digital household clean. Each directory is like a container of food, and inside each container, there’s a label (cleanup-maid-YYYY-MM-DD) that tells you when it expires.
 
