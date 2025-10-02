@@ -42,17 +42,31 @@ This way, your system stays clean, just like your fridge stays free of expired l
 
 ## Installation
 
-### Quick Install with bbin (Requires Java)
+### Quick Install with bbin (Recommended)
 
-If you have Java installed, the easiest way to install bb-maid is to use [bbin](https://github.com/babashka/bbin), a script manager for Babashka:
+The easiest way to install bb-maid is to use [bbin](https://github.com/babashka/bbin), a script manager for Babashka:
 
 ```sh
 bbin install io.github.simonneutert/bb-maid
 ```
 
-This will make `bb-maid` available globally on your system.
+This will make the `bb-maid` command available globally on your system.
 
-**Note:** bbin requires Java/JDK to be installed. If you don't have Java or prefer not to install it, use the manual installation methods below.
+**Requirements:**
+- [bbin](https://github.com/babashka/bbin) installed
+- Java/JDK installed (required by bbin for dependency resolution)
+- `~/.local/bin` in your PATH (add to your `~/.zshrc` or `~/.bashrc` if needed):
+  ```sh
+  export PATH="$HOME/.local/bin:$PATH"
+  ```
+
+After installation, verify it works:
+```sh
+bb-maid
+# Should display usage information
+```
+
+**Note:** If you don't have Java or prefer not to install it, use the manual installation methods below.
 
 ### Manual Installation
 
@@ -87,18 +101,30 @@ Copy `maid.clj` and `bb.edn` to a directory in your PATH (e.g., `~/bin` or `/usr
 
 ### Verify Installation
 
-To verify the installation and see available tasks:
+**For bbin installation:**
+```sh
+bb-maid
+# Should display: Usage information
+```
 
+**For local repository:**
 ```sh
 bb tasks
+# Should display: Available tasks (clean, clean-in)
 ```
 
 ## Usage
 
+> **Note:** If you installed via bbin, use the `bb-maid` command directly. If you cloned the repository, use `bb` with the task names (`bb clean`, `bb clean-in`).
+
 ### Cleaning Up Expired Directories
 
-Run the script and specify the entry directory:
+**With bbin installation:**
+```sh
+bb-maid /path/to/start
+```
 
+**With local repository:**
 ```sh
 bb clean /path/to/start
 ```
@@ -111,6 +137,12 @@ directory.
 
 To create a cleanup file that will expire after a specified duration:
 
+**With bbin installation:**
+```sh
+bb-maid clean-in 7d
+```
+
+**With local repository:**
 ```sh
 bb clean-in 7d
 ```
