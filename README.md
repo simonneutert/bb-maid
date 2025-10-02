@@ -21,11 +21,18 @@ This way, your system stays clean, just like your fridge stays free of expired l
 
 ## Table of Contents<!-- omit in toc -->
 
+- [Concept](#concept)
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
+  - [Quick Install with bbin (Requires Java)](#quick-install-with-bbin-requires-java)
+  - [Manual Installation](#manual-installation)
+    - [Option 1: Add to PATH](#option-1-add-to-path)
+    - [Option 2: Script-adjacent bb.edn](#option-2-script-adjacent-bbedn)
+  - [Verify Installation](#verify-installation)
 - [Usage](#usage)
+  - [Cleaning Up Expired Directories](#cleaning-up-expired-directories)
+  - [Creating Cleanup Files](#creating-cleanup-files)
   - [Example](#example)
-  - [Set a shell alias](#set-a-shell-alias)
 - [How It Works](#how-it-works)
 - [License](#license)
 
@@ -35,19 +42,60 @@ This way, your system stays clean, just like your fridge stays free of expired l
 
 ## Installation
 
-Clone the repository and navigate to the script directory:
+### Quick Install with bbin (Requires Java)
+
+If you have Java installed, the easiest way to install bb-maid is to use [bbin](https://github.com/babashka/bbin), a script manager for Babashka:
 
 ```sh
+bbin install io.github.simonneutert/bb-maid
+```
+
+This will make `bb-maid` available globally on your system.
+
+**Note:** bbin requires Java/JDK to be installed. If you don't have Java or prefer not to install it, use the manual installation methods below.
+
+### Manual Installation
+
+#### Option 1: Add to PATH
+
+1. Clone the repository:
+
+```sh
+git clone https://github.com/simonneutert/bb-maid.git
 cd bb-maid
 ```
 
-To show the available tasks, run:
+2. Make the script executable:
+
+```sh
+chmod +x maid.clj
+```
+
+3. Add the directory to your PATH or create a symlink:
+
+```sh
+# Add to PATH (add this to your ~/.zshrc or ~/.bashrc)
+export PATH="$PATH:/path/to/bb-maid"
+
+# OR create a symlink
+ln -s /path/to/bb-maid/maid.clj /usr/local/bin/bb-maid
+```
+
+#### Option 2: Script-adjacent bb.edn
+
+Copy `maid.clj` and `bb.edn` to a directory in your PATH (e.g., `~/bin` or `/usr/local/bin`). Babashka will automatically find and use the adjacent `bb.edn` file for dependencies.
+
+### Verify Installation
+
+To verify the installation and see available tasks:
 
 ```sh
 bb tasks
 ```
 
 ## Usage
+
+### Cleaning Up Expired Directories
 
 Run the script and specify the entry directory:
 
@@ -59,29 +107,22 @@ The script will search for files named `cleanup-maid-YYYY-MM-DD`, check if the
 date has passed, and prompt the user before deleting the corresponding
 directory.
 
+### Creating Cleanup Files
+
+To create a cleanup file that will expire after a specified duration:
+
+```sh
+bb clean-in 7d
+```
+
+This command creates a file named `cleanup-maid-YYYY-MM-DD` with a date 7 days in the future. You can use any number of days (e.g., `1d`, `30d`, `90d`).
+
 ### Example
 
-To create a test file that will trigger deletion in 7 days, use the following
-command:
+Alternatively, you can manually create a cleanup file using:
 
 ```sh
 touch cleanup-maid-$(date -d "+7 days" +"%Y-%m-%d" 2>/dev/null || date -v+7d +"%Y-%m-%d")
-```
-
-This command creates a file named `cleanup-maid-YYYY-MM-DD` with a date 7 days in the future.
-
-### Set a shell alias
-
-To make the script easier to run, add an alias to your shell configuration file:
-
-```sh
-alias bb-maid='cd /path/to/bb-maid && bb clean'
-```
-
-Now you can run the script with the following command:
-
-```sh
-bb-maid /path/to/start
 ```
 
 ## How It Works
