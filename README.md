@@ -30,6 +30,7 @@ This way, your system stays clean, just like your fridge stays free of expired l
   - [Cleaning Up Expired Directories](#cleaning-up-expired-directories)
     - [Options](#options)
     - [Examples](#examples)
+  - [Listing Cleanup Files](#listing-cleanup-files)
   - [Creating Cleanup Files](#creating-cleanup-files)
     - [Examples](#examples-1)
   - [Example](#example)
@@ -141,6 +142,7 @@ The script will **recursively search** all subdirectories for files named `clean
 - `--follow-links` - Follow symbolic links (default: disabled for safety)
 - `--yes` or `-y` - Skip confirmation prompts (useful for automation)
 - `--dry-run` or `-n` - Show what would be deleted without actually deleting
+- `--list` - List all cleanup files sorted by date without deleting anything
 
 #### Examples
 
@@ -159,9 +161,46 @@ bb-maid clean ~/temp-files --yes
 
 # Combine options
 bb-maid clean ~/projects --max-depth 3 --dry-run
+
+# List all cleanup files to see what's scheduled
+bb-maid clean --list
+
+# List cleanup files in a specific directory
+bb-maid clean ~/projects --list
 ```
 
 **Note**: Symbolic links are NOT followed by default for safety reasons.
+
+### Listing Cleanup Files
+
+Want to see what directories are scheduled for cleanup without deleting anything? Use the `--list` option:
+
+```sh
+# List all cleanup files in current directory
+bb-maid clean --list
+
+# List with color-coded expiration status:
+# 🔴 Red: Expired (ready for cleanup)
+# 🟡 Yellow: Expiring soon (within 7 days)
+# 🟢 Green: Expiring later (more than 7 days away)
+```
+
+**Example output:**
+```
+┏ INFO
+┃ Found 4 cleanup files:
+┗
+
+2025-09-28 (EXPIRED 5 days ago)     /projects/old-feature
+2025-10-01 (EXPIRED 2 days ago)     /temp/downloads
+2025-10-06 (in 3 days)              /cache/build-artifacts
+2025-10-13 (in 10 days)             /logs/october
+```
+
+The `--list` option is perfect for:
+- 📊 Getting an overview of scheduled cleanups
+- 🔍 Checking what's about to expire
+- ✅ Verifying cleanup files before running actual deletion
 
 ### Creating Cleanup Files
 

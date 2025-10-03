@@ -72,14 +72,15 @@
 
 (defn parse-clean-options
   "Parse command-line options for the clean command.
-   Returns a map with :path, :glob-opts, :dry-run, and :auto-confirm keys."
+   Returns a map with :path, :glob-opts, :dry-run, :auto-confirm, and :list keys."
   [args]
   (loop [remaining args
          result {:path nil
                  :glob-opts {:follow-links false
                             :max-depth Integer/MAX_VALUE}
                  :dry-run false
-                 :auto-confirm false}]
+                 :auto-confirm false
+                 :list false}]
     (if (empty? remaining)
       result
       (let [arg (first remaining)]
@@ -106,6 +107,10 @@
           (recur (rest remaining)
                  (assoc result :dry-run true))
           
+          (= arg "--list")
+          (recur (rest remaining)
+                 (assoc result :list true))
+          
           ;; Path argument (doesn't start with --)
           (not (str/starts-with? arg "--"))
           (recur (rest remaining)
@@ -130,6 +135,52 @@
           (when (or (:auto-confirm opts) (confirm-deletion parent-dir date-str))
             (println "Deleting directory: " parent-dir " with date: " date-str)
             (fs/delete-tree parent-dir)))))))
+
+(defn days-until
+  "Calculate days until the given date. Negative if past."
+  [date-str]
+  (let [file-date (java.time.LocalDate/parse date-str)
+        current-date (java.time.LocalDate/now)
+        days (.between java.time.temporal.ChronoUnit/DAYS current-date file-date)]
+    days))
+
+(defn format-date-display
+  "Format date with days remaining and color coding"
+  [date-str]
+  (let [days (days-until date-str)]
+    (cond
+      (< days 0)
+      (bling [:red date-str] [:red (str " (EXPIRED " (Math/abs days) " day" (if (= (Math/abs days) 1) "" "s") " ago)")])
+      
+      (<= days 7)
+      (bling [:yellow date-str] [:yellow (str " (in " days " day" (if (= days 1) "" "s") ")")])
+      
+      :else
+      (bling [:green date-str] [:green (str " (in " days " day" (if (= days 1) "" "s") ")")]))))
+
+(defn list-cleanup-directories
+  "List all directories with cleanup-maid files, sorted by date (earliest first)"
+  [entrypoint opts]
+  (let [glob-opts (:glob-opts opts {:follow-links false
+                                     :max-depth Integer/MAX_VALUE})
+        files (fs/glob entrypoint "**/*" glob-opts)
+        cleanup-files (filter #(extract-date (fs/file-name %)) files)
+        file-data (map (fn [file]
+                        {:file file
+                         :parent (fs/parent file)
+                         :date-str (extract-date (fs/file-name file))
+                         :date (java.time.LocalDate/parse 
+                                 (extract-date (fs/file-name file)))})
+                      cleanup-files)
+        sorted-data (sort-by :date file-data)]
+    
+    (if (empty? sorted-data)
+      (callout {:type :info} (bling [:cyan "No cleanup files found in "] [:bold (str entrypoint)]))
+      (do
+        (callout {:type :info} (bling [:cyan "Found "] [:bold (str (count sorted-data))] [:cyan " cleanup file" (if (= (count sorted-data) 1) "" "s") ":"]))
+        (println)
+        (doseq [{:keys [date-str parent]} sorted-data]
+          (println (format-date-display date-str) "   " (str parent)))))))
 
 (defn search-and-delete 
   "Recursively search for cleanup-maid files and delete expired directories.
@@ -173,7 +224,9 @@
       (let [opts (parse-clean-options remaining-args)
             dir (or (:path opts) ".")]
         (if (fs/exists? dir)
-          (search-and-delete dir opts)
+          (if (:list opts)
+            (list-cleanup-directories dir opts)
+            (search-and-delete dir opts))
           (callout {:type :error} (bling [:red "Error:"] " Directory does not exist: " [:bold dir]))))
       
       (= command "clean-in")
@@ -199,6 +252,7 @@
         (println "      --follow-links      Follow symbolic links (default: false)")
         (println "      --yes, -y           Skip confirmation prompts")
         (println "      --dry-run, -n       Show what would be deleted without deleting")
+        (println "      --list              List all cleanup files sorted by date (no deletion)")
         (println "")
         (println "  bb-maid clean-in <duration> [directory]")
         (println "    Create a cleanup file (e.g., '7d' for 7 days, defaults to current directory)")))))
