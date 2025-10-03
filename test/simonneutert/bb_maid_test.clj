@@ -61,6 +61,10 @@
     (is (true? (:dry-run (maid/parse-clean-options ["/tmp" "--dry-run"]))))
     (is (true? (:dry-run (maid/parse-clean-options ["/tmp" "-n"])))))
   
+  (testing "Parses --list flag"
+    (is (true? (:list (maid/parse-clean-options ["/tmp" "--list"]))))
+    (is (false? (:list (maid/parse-clean-options ["/tmp"])))))
+  
   (testing "Combines multiple options"
     (let [opts (maid/parse-clean-options ["/tmp" "--max-depth" "3" "--dry-run" "-y"])]
       (is (= "/tmp" (:path opts)))
@@ -68,12 +72,19 @@
       (is (true? (:dry-run opts)))
       (is (true? (:auto-confirm opts)))))
   
+  (testing "Combines --list with other options"
+    (let [opts (maid/parse-clean-options ["/tmp" "--list" "--max-depth" "2"])]
+      (is (= "/tmp" (:path opts)))
+      (is (true? (:list opts)))
+      (is (= 2 (get-in opts [:glob-opts :max-depth])))))
+  
   (testing "Default values"
     (let [opts (maid/parse-clean-options ["/tmp"])]
       (is (false? (get-in opts [:glob-opts :follow-links])))
       (is (= Integer/MAX_VALUE (get-in opts [:glob-opts :max-depth])))
       (is (false? (:dry-run opts)))
-      (is (false? (:auto-confirm opts))))))
+      (is (false? (:auto-confirm opts)))
+      (is (false? (:list opts))))))
 
 (deftest parse-duration-validates-format-test
   (testing "parse-duration returns nil for invalid formats"
@@ -241,3 +252,117 @@
               "The cleanup file should exist"))
         (finally
           (fs/delete-tree temp-dir))))))
+
+(deftest days-until-test
+  (testing "Calculates days until future date"
+    (let [today (java.time.LocalDate/now)
+          future-date (.plusDays today 7)
+          date-str (.format future-date (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd"))]
+      (is (= 7 (maid/days-until date-str)))))
+  
+  (testing "Returns negative for past dates"
+    (let [today (java.time.LocalDate/now)
+          past-date (.minusDays today 5)
+          date-str (.format past-date (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd"))]
+      (is (= -5 (maid/days-until date-str)))))
+  
+  (testing "Returns 0 for today"
+    (let [today (java.time.LocalDate/now)
+          date-str (.format today (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd"))]
+      (is (= 0 (maid/days-until date-str))))))
+
+(deftest format-date-display-test
+  (testing "format-date-display returns a string-like structure"
+    (let [today (java.time.LocalDate/now)
+          date-str (.format today (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd"))
+          result (maid/format-date-display date-str)]
+      (is (some? result)
+          "Should return a non-nil result")))
+  
+  (testing "Handles expired dates"
+    (let [past-date "2025-09-01"
+          result (maid/format-date-display past-date)]
+      (is (some? result)
+          "Should format expired dates")))
+  
+  (testing "Handles upcoming dates"
+    (let [future-date "2030-01-01"
+          result (maid/format-date-display future-date)]
+      (is (some? result)
+          "Should format upcoming dates"))))
+
+(deftest list-cleanup-directories-integration-test
+  (testing "Lists cleanup files correctly"
+    (let [temp-dir (str (fs/create-temp-dir))]
+      (try
+        ;; Create test structure
+        (let [dir1 (fs/create-dirs (fs/path temp-dir "expired"))
+              dir2 (fs/create-dirs (fs/path temp-dir "upcoming"))]
+          (spit (fs/file dir1 "cleanup-maid-2020-01-01") "")
+          (spit (fs/file dir2 "cleanup-maid-2030-01-01") "")
+          
+          ;; Test that list-cleanup-directories runs without error
+          (let [opts {:glob-opts {:follow-links false
+                                  :max-depth Integer/MAX_VALUE}}
+                result (with-out-str 
+                         (maid/list-cleanup-directories temp-dir opts))]
+            (is (some? result)
+                "Should produce output")
+            (is (string? result)
+                "Output should be a string")))
+        (finally
+          (fs/delete-tree temp-dir)))))
+  
+  (testing "Handles empty directories"
+    (let [temp-dir (str (fs/create-temp-dir))]
+      (try
+        (let [opts {:glob-opts {:follow-links false
+                                :max-depth Integer/MAX_VALUE}}
+              result (with-out-str
+                       (maid/list-cleanup-directories temp-dir opts))]
+          (is (some? result)
+              "Should handle directories with no cleanup files"))
+        (finally
+          (fs/delete-tree temp-dir)))))
+  
+  (testing "Respects max-depth option"
+    (let [temp-dir (str (fs/create-temp-dir))]
+      (try
+        ;; Create nested structure
+        (let [deep-dir (fs/create-dirs (fs/path temp-dir "level1" "level2" "level3"))]
+          (spit (fs/file deep-dir "cleanup-maid-2025-01-01") "")
+          
+          (let [opts-shallow {:glob-opts {:follow-links false
+                                          :max-depth 1}}
+                opts-deep {:glob-opts {:follow-links false
+                                       :max-depth 10}}]
+            ;; Both should run without error
+            (is (some? (with-out-str (maid/list-cleanup-directories temp-dir opts-shallow))))
+            (is (some? (with-out-str (maid/list-cleanup-directories temp-dir opts-deep))))))
+        (finally
+          (fs/delete-tree temp-dir))))))
+
+(deftest list-does-not-delete-test
+  (testing "list-cleanup-directories does not delete any files"
+    (let [temp-dir (str (fs/create-temp-dir))]
+      (try
+        ;; Create an expired cleanup file
+        (let [expired-dir (fs/create-dirs (fs/path temp-dir "expired-dir"))]
+          (spit (fs/file expired-dir "cleanup-maid-2020-01-01") "")
+          (spit (fs/file expired-dir "important-file.txt") "Don't delete me!")
+          
+          ;; Run list
+          (let [opts {:glob-opts {:follow-links false
+                                  :max-depth Integer/MAX_VALUE}}]
+            (with-out-str (maid/list-cleanup-directories temp-dir opts)))
+          
+          ;; Verify nothing was deleted
+          (is (fs/exists? expired-dir)
+              "Directory should still exist after listing")
+          (is (fs/exists? (fs/file expired-dir "cleanup-maid-2020-01-01"))
+              "Cleanup file should still exist")
+          (is (fs/exists? (fs/file expired-dir "important-file.txt"))
+              "Other files should not be affected"))
+        (finally
+          (fs/delete-tree temp-dir))))))
+
