@@ -1,7 +1,7 @@
 #compdef bb-maid
 
 _bb-maid() {
-    local -a commands durations
+    local -a commands durations clean_options
     commands=(
         'clean:Clean up expired directories'
         'clean-in:Create a cleanup file with expiration date'
@@ -13,6 +13,14 @@ _bb-maid() {
         '30d:30 days'
         '60d:60 days'
         '90d:90 days'
+    )
+    clean_options=(
+        '--max-depth:Limit recursion depth'
+        '--follow-links:Follow symbolic links'
+        '--yes:Skip confirmation prompts'
+        '-y:Skip confirmation prompts'
+        '--dry-run:Show what would be deleted'
+        '-n:Show what would be deleted'
     )
 
     _arguments -C \
@@ -26,7 +34,21 @@ _bb-maid() {
         args)
             case ${words[2]} in
                 clean)
-                    _files -/
+                    # Mix of directories and options
+                    _arguments \
+                        '1:directory:_files -/' \
+                        '*::option:->clean_opts'
+                    
+                    case $state in
+                        clean_opts)
+                            if [[ ${words[CURRENT]} == --max-depth ]]; then
+                                _message 'depth (e.g., 2 for 2 levels)'
+                            else
+                                _describe 'option' clean_options
+                                _files -/
+                            fi
+                            ;;
+                    esac
                     ;;
                 clean-in)
                     _describe 'duration' durations

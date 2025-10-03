@@ -70,26 +70,127 @@
           (println "Deleting directory: " parent-dir " with date: " date-str)
           (fs/delete-tree parent-dir))))))
 
-(defn search-and-delete [entrypoint]
-  (doseq [file (fs/glob entrypoint "**/*")]
-    (process-file file)))
+(defn parse-clean-options
+  "Parse command-line options for the clean command.
+   Returns a map with :path, :glob-opts, :dry-run, and :auto-confirm keys."
+  [args]
+  (loop [remaining args
+         result {:path nil
+                 :glob-opts {:follow-links false
+                            :max-depth Integer/MAX_VALUE}
+                 :dry-run false
+                 :auto-confirm false}]
+    (if (empty? remaining)
+      result
+      (let [arg (first remaining)]
+        (cond
+          ;; Flags with values
+          (= arg "--max-depth")
+          (if-let [depth (second remaining)]
+            (recur (drop 2 remaining)
+                   (assoc-in result [:glob-opts :max-depth] (Integer/parseInt depth)))
+            (do
+              (callout {:type :error} (bling [:red "Error:"] " --max-depth requires a number"))
+              result))
+          
+          ;; Boolean flags
+          (= arg "--follow-links")
+          (recur (rest remaining)
+                 (assoc-in result [:glob-opts :follow-links] true))
+          
+          (or (= arg "--yes") (= arg "-y"))
+          (recur (rest remaining)
+                 (assoc result :auto-confirm true))
+          
+          (or (= arg "--dry-run") (= arg "-n"))
+          (recur (rest remaining)
+                 (assoc result :dry-run true))
+          
+          ;; Path argument (doesn't start with --)
+          (not (str/starts-with? arg "--"))
+          (recur (rest remaining)
+                 (assoc result :path arg))
+          
+          ;; Unknown flag
+          :else
+          (do
+            (callout {:type :warning} (bling [:yellow "Warning:"] " Unknown option: " [:bold arg]))
+            (recur (rest remaining) result)))))))
+
+(defn process-file-with-options [file opts]
+  (let [parent-dir (fs/parent file)
+        filename (fs/file-name file)
+        formatted-filename (str filename)
+        formatted-dir (str parent-dir)] 
+    (callout {:type :info} (bling "Processing file: " [:bold formatted-filename] " in directory: " [:bold formatted-dir]))
+    (when-let [date-str (extract-date filename)]
+      (when (past-date? date-str)
+        (if (:dry-run opts)
+          (callout {:type :warning} (bling [:yellow "Would delete:"] " " [:bold (str parent-dir)]))
+          (when (or (:auto-confirm opts) (confirm-deletion parent-dir date-str))
+            (println "Deleting directory: " parent-dir " with date: " date-str)
+            (fs/delete-tree parent-dir)))))))
+
+(defn search-and-delete 
+  "Recursively search for cleanup-maid files and delete expired directories.
+   Options:
+   - :glob-opts - options passed to fs/glob (:follow-links, :max-depth)
+   - :dry-run - if true, only show what would be deleted
+   - :auto-confirm - if true, skip confirmation prompts"
+  [entrypoint opts]
+  (let [glob-opts (:glob-opts opts {:follow-links false
+                                     :max-depth Integer/MAX_VALUE})
+        files (fs/glob entrypoint "**/*" glob-opts)
+        expired-count (atom 0)
+        symlink-count (atom 0)]
+    (when (:dry-run opts)
+      (callout {:type :info} (bling [:cyan "DRY RUN MODE:"] " No files will be deleted")))
+    
+    ;; Check for symlinks in the traversal and warn if not following them
+    (when-not (get-in opts [:glob-opts :follow-links])
+      (doseq [file files]
+        (when (fs/sym-link? file)
+          (swap! symlink-count inc)
+          (callout {:type :warning} (bling [:yellow "Skipping symlink:"] " " [:bold (str file)] " (use --follow-links to traverse)"))))) 
+    
+    (doseq [file files]
+      (when-let [date-str (extract-date (fs/file-name file))]
+        (when (past-date? date-str)
+          (swap! expired-count inc)
+          (process-file-with-options file opts))))
+    
+    (when (and (pos? @expired-count) (:dry-run opts))
+      (callout {:type :info} (bling [:cyan "Summary:"] " Found " [:bold (str @expired-count)] " expired director" (if (= @expired-count 1) "y" "ies"))))
+    
+    (when (and (pos? @symlink-count) (not (get-in opts [:glob-opts :follow-links])))
+      (callout {:type :info} (bling [:cyan "Info:"] " Skipped " [:bold (str @symlink-count)] " symlink" (if (= @symlink-count 1) "" "s") " (use --follow-links to traverse)")))))
 
 (defn -main [& args]
   (let [command (first args)
-        arg (second args)]
+        remaining-args (rest args)]
     (cond
       (= command "clean")
-      (if arg
-        (search-and-delete arg)
-        (callout {:type :error} (bling [:red "Error:"] " Please specify a directory to clean")))
+      (let [opts (parse-clean-options remaining-args)]
+        (if (:path opts)
+          (search-and-delete (:path opts) opts)
+          (callout {:type :error} (bling [:red "Error:"] " Please specify a directory to clean"))))
       
       (= command "clean-in")
-      (if arg
-        (create-cleanup-file arg)
-        (callout {:type :error} (bling [:red "Error:"] " Please specify a duration (e.g., '7d' for 7 days)")))
+      (let [arg (first remaining-args)]
+        (if arg
+          (create-cleanup-file arg)
+          (callout {:type :error} (bling [:red "Error:"] " Please specify a duration (e.g., '7d' for 7 days)"))))
       
       :else
       (do
         (println "Usage:")
-        (println "  bb-maid clean <directory>    - Clean up expired directories")
-        (println "  bb-maid clean-in <duration>  - Create a cleanup file (e.g., '7d' for 7 days)")))))
+        (println "  bb-maid clean <directory> [options]")
+        (println "    Clean up expired directories")
+        (println "    Options:")
+        (println "      --max-depth <n>     Limit recursion depth (default: unlimited)")
+        (println "      --follow-links      Follow symbolic links (default: false)")
+        (println "      --yes, -y           Skip confirmation prompts")
+        (println "      --dry-run, -n       Show what would be deleted without deleting")
+        (println "")
+        (println "  bb-maid clean-in <duration>")
+        (println "    Create a cleanup file (e.g., '7d' for 7 days)")))))

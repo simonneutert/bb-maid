@@ -1,0 +1,19 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Setup Babashka
+      uses: DeLaGuardo/setup-clojure@12.5
+      with:
+        bb: 'latest'
+
+    - name: Run tests
+      run: bb test
