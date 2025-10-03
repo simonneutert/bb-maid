@@ -29,25 +29,25 @@
     (.plusDays current-date days)))
 
 (defn remove-existing-cleanup-files 
-  "Remove any existing cleanup-maid files in the current directory"
-  []
+  "Remove any existing cleanup-maid files in the specified directory"
+  [dir]
   (let [existing-files (filter #(re-matches #"cleanup-maid-\d{4}-\d{2}-\d{2}" (fs/file-name %))
-                               (fs/list-dir "."))]
+                               (fs/list-dir dir))]
     (doseq [file existing-files]
       (callout {:type :warning} (bling "Removing existing cleanup file: " [:bold (fs/file-name file)]))
       (fs/delete file))))
 
 (defn create-cleanup-file 
-  "Create a cleanup file with a date based on the duration"
-  [duration-str]
+  "Create a cleanup file with a date based on the duration in the specified directory"
+  [duration-str dir]
   (if-let [days (parse-duration duration-str)]
     (do
-      (remove-existing-cleanup-files)
+      (remove-existing-cleanup-files dir)
       (let [future-date (calculate-future-date days)
             date-str (.format future-date (java.time.format.DateTimeFormatter/ofPattern "yyyy-MM-dd"))
-            filename (str "cleanup-maid-" date-str)]
-        (callout {:type :info} (bling "Creating cleanup file: " [:bold filename] " (expires in " [:bold (str days)] " days)"))
-        (spit filename "")
+            filepath (str (fs/path dir (str "cleanup-maid-" date-str)))]
+        (callout {:type :info} (bling "Creating cleanup file: " [:bold filepath] " (expires in " [:bold (str days)] " days)"))
+        (spit filepath "")
         (callout {:type :success} (bling [:green "✓"] " File created successfully"))))
     (callout {:type :error} (bling [:red "Error:"] " Invalid duration format. Use format like '7d' for 7 days"))))
 
@@ -170,27 +170,35 @@
         remaining-args (rest args)]
     (cond
       (= command "clean")
-      (let [opts (parse-clean-options remaining-args)]
-        (if (:path opts)
-          (search-and-delete (:path opts) opts)
-          (callout {:type :error} (bling [:red "Error:"] " Please specify a directory to clean"))))
+      (let [opts (parse-clean-options remaining-args)
+            dir (or (:path opts) ".")]
+        (if (fs/exists? dir)
+          (search-and-delete dir opts)
+          (callout {:type :error} (bling [:red "Error:"] " Directory does not exist: " [:bold dir]))))
       
       (= command "clean-in")
-      (let [arg (first remaining-args)]
-        (if arg
-          (create-cleanup-file arg)
-          (callout {:type :error} (bling [:red "Error:"] " Please specify a duration (e.g., '7d' for 7 days)"))))
+      (let [duration (first remaining-args)
+            path (or (second remaining-args) ".")]
+        (cond
+          (not duration)
+          (callout {:type :error} (bling [:red "Error:"] " Please specify a duration (e.g., '7d' for 7 days)"))
+          
+          (not (fs/exists? path))
+          (callout {:type :error} (bling [:red "Error:"] " Directory does not exist: " [:bold path]))
+          
+          :else
+          (create-cleanup-file duration path)))
       
       :else
       (do
         (println "Usage:")
-        (println "  bb-maid clean <directory> [options]")
-        (println "    Clean up expired directories")
+        (println "  bb-maid clean [directory] [options]")
+        (println "    Clean up expired directories (defaults to current directory)")
         (println "    Options:")
         (println "      --max-depth <n>     Limit recursion depth (default: unlimited)")
         (println "      --follow-links      Follow symbolic links (default: false)")
         (println "      --yes, -y           Skip confirmation prompts")
         (println "      --dry-run, -n       Show what would be deleted without deleting")
         (println "")
-        (println "  bb-maid clean-in <duration>")
-        (println "    Create a cleanup file (e.g., '7d' for 7 days)")))))
+        (println "  bb-maid clean-in <duration> [directory]")
+        (println "    Create a cleanup file (e.g., '7d' for 7 days, defaults to current directory)")))))
