@@ -11,7 +11,6 @@ the user for confirmation before deleting any directories.
 
 ## Concept
 
-
 Think of this script like a helper, that keeps your digital household clean. Each directory is like a container of food, and inside each container, there’s a label (cleanup-maid-YYYY-MM-DD) that tells you when it expires.
 
 If today’s date is past the expiration date on the label, the script asks you, “Hey, this has expired—should I throw it out?” If you say yes, it cleans out the whole container (directory), just like you’d toss out spoiled food to keep your fridge fresh.
@@ -30,6 +29,8 @@ This way, your system stays clean, just like your fridge stays free of expired l
   - [Verify Installation](#verify-installation)
 - [Usage](#usage)
   - [Cleaning Up Expired Directories](#cleaning-up-expired-directories)
+    - [Options](#options)
+    - [Examples](#examples)
   - [Creating Cleanup Files](#creating-cleanup-files)
   - [Example](#example)
 - [Tab Completion](#tab-completion)
@@ -37,6 +38,10 @@ This way, your system stays clean, just like your fridge stays free of expired l
   - [Setup for Zsh](#setup-for-zsh)
   - [Setup for Bash](#setup-for-bash)
 - [How It Works](#how-it-works)
+  - [Safety Features](#safety-features)
+- [Development](#development)
+  - [Running Tests](#running-tests)
+  - [Adding Tests](#adding-tests)
 - [License](#license)
 
 ## Prerequisites
@@ -124,17 +129,40 @@ bb tasks
 
 **With bbin installation:**
 ```sh
-bb-maid clean /path/to/start
+bb-maid clean /path/to/start [options]
 ```
 
 **With local repository:**
 ```sh
-bb clean /path/to/start
+bb clean /path/to/start [options]
 ```
 
-The script will search for files named `cleanup-maid-YYYY-MM-DD`, check if the
-date has passed, and prompt the user before deleting the corresponding
-directory.
+The script will **recursively search** all subdirectories for files named `cleanup-maid-YYYY-MM-DD`, check if the date has passed, and prompt you before deleting each expired directory.
+
+#### Options
+
+- `--max-depth <n>` - Limit how deep to recurse into subdirectories (default: unlimited)
+- `--follow-links` - Follow symbolic links (default: disabled for safety)
+- `--yes` or `-y` - Skip confirmation prompts (useful for automation)
+- `--dry-run` or `-n` - Show what would be deleted without actually deleting
+
+#### Examples
+
+```sh
+# Dry run to see what would be deleted
+bb-maid clean ~/projects --dry-run
+
+# Only search 2 levels deep
+bb-maid clean ~/projects --max-depth 2
+
+# Auto-confirm all deletions (be careful!)
+bb-maid clean ~/temp-files --yes
+
+# Combine options
+bb-maid clean ~/projects --max-depth 3 --dry-run
+```
+
+**Note**: Symbolic links are NOT followed by default for safety reasons.
 
 ### Creating Cleanup Files
 
@@ -168,6 +196,7 @@ Tab completion helps you work faster by auto-completing commands and suggesting 
 
 - `bb-maid <TAB>` → suggests `clean` and `clean-in` commands
 - `bb-maid clean <TAB>` → shows available directories
+- `bb-maid clean --<TAB>` → shows available options (--max-depth, --follow-links, --yes, --dry-run)
 - `bb-maid clean-in <TAB>` → suggests common durations (1d, 7d, 14d, 30d, 60d, 90d)
 
 ### Setup for Zsh
@@ -210,10 +239,59 @@ Then restart your terminal or run `source ~/.bashrc`.
 
 ## How It Works
 
-1. The script scans all files in subdirectories of the given entry point.
-2. It looks for filenames matching `cleanup-maid-YYYY-MM-DD`.
-3. If the date in the filename is past today, the script prompts the user for
-   confirmation before deleting the directory.
+1. **Recursive Scanning**: The script recursively scans **all subdirectories** of the given entry point, searching through the entire directory tree.
+2. **Pattern Matching**: It looks for filenames matching `cleanup-maid-YYYY-MM-DD`.
+3. **Date Check**: If the date in the filename is past today, the script identifies the directory as expired.
+4. **User Confirmation**: Before any deletion, the script prompts you for confirmation.
+5. **Safe Deletion**: Only after confirmation, the parent directory (and all its contents) is deleted.
+
+### Safety Features
+
+- **Symlinks**: The script does **NOT** follow symbolic links by default, preventing infinite loops and protecting content outside the target directory tree. When symlinks are encountered, they are:
+  - **Logged with warnings**: Each skipped symlink is reported with a yellow warning message
+  - **Summarized**: A final count shows total symlinks skipped
+  - **Optional traversal**: Use `--follow-links` flag to traverse symlinks if needed
+- **Confirmation Required**: Every deletion requires explicit user confirmation (no silent deletions).
+- **Non-destructive by default**: The script only suggests deletions; you have final control.
+- **Dry-run mode**: Test operations safely with `--dry-run` before actual deletion.
+
+## Development
+
+### Running Tests
+
+bb-maid includes a test suite using `clojure.test`. To run the tests:
+
+```sh
+bb test
+```
+
+Or run the test runner directly:
+
+```sh
+bb test-runner.clj
+```
+
+The test suite covers:
+- Date parsing and validation
+- Duration string parsing (`7d`, `30d`, etc.)
+- Command-line option parsing
+- Option combinations and defaults
+- Symlink handling behavior (default: disabled, with --follow-links flag)
+
+### Adding Tests
+
+Tests are located in `test/simonneutert/bb_maid_test.clj`. To add new tests:
+
+1. Add your test to the test namespace
+2. Run `bb test` to verify
+
+Example test:
+
+```clojure
+(deftest my-new-test
+  (testing "Description of what you're testing"
+    (is (= expected-value (function-call args)))))
+```
 
 ## License
 
