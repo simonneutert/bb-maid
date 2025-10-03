@@ -1,9 +1,13 @@
 {:deps {io.github.paintparty/bling {:mvn/version "0.4.2"}}
  :paths ["src"]
  :bbin/bin {bb-maid {:main-opts ["-m" "simonneutert.bb-maid"]}}
- :tasks {clean {:doc "Run cleanup script"
-                :task (shell "bb maid.clj" (first *command-line-args*))}
+ :tasks {:requires ([simonneutert.bb-maid :as maid])
+         
+         clean {:doc "Run cleanup script to remove expired directories"
+                :task (apply maid/-main "clean" *command-line-args*)}
+         
          clean-in {:doc "Create a cleanup file with expiration date (e.g., 'bb clean-in 7d')"
-                   :task (shell "bb maid.clj clean-in" (first *command-line-args*))}
+                   :task (apply maid/-main "clean-in" *command-line-args*)}
+         
          test {:doc "Run tests"
                :task (shell "bb test-runner.clj")}}}

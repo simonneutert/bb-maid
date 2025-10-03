@@ -24,14 +24,14 @@ This way, your system stays clean, just like your fridge stays free of expired l
 - [Installation](#installation)
   - [Quick Install with bbin (Recommended)](#quick-install-with-bbin-recommended)
   - [Manual Installation](#manual-installation)
-    - [Option 1: Add to PATH](#option-1-add-to-path)
-    - [Option 2: Script-adjacent bb.edn](#option-2-script-adjacent-bbedn)
+    - [Local Development](#local-development)
   - [Verify Installation](#verify-installation)
 - [Usage](#usage)
   - [Cleaning Up Expired Directories](#cleaning-up-expired-directories)
     - [Options](#options)
     - [Examples](#examples)
   - [Creating Cleanup Files](#creating-cleanup-files)
+    - [Examples](#examples-1)
   - [Example](#example)
 - [Tab Completion](#tab-completion)
   - [What Gets Completed](#what-gets-completed)
@@ -78,7 +78,7 @@ bb-maid
 
 ### Manual Installation
 
-#### Option 1: Add to PATH
+#### Local Development
 
 1. Clone the repository:
 
@@ -87,25 +87,19 @@ git clone https://github.com/simonneutert/bb-maid.git
 cd bb-maid
 ```
 
-2. Make the script executable:
+2. Run tasks directly using babashka:
 
 ```sh
-chmod +x maid.clj
+bb tasks        # List available tasks
+bb clean .      # Clean current directory
+bb clean-in 7d  # Create cleanup file
+bb test         # Run tests
 ```
 
-3. Add the directory to your PATH or create a symlink:
-
-```sh
-# Add to PATH (add this to your ~/.zshrc or ~/.bashrc)
-export PATH="$PATH:/path/to/bb-maid"
-
-# OR create a symlink
-ln -s /path/to/bb-maid/maid.clj /usr/local/bin/bb-maid
-```
-
-#### Option 2: Script-adjacent bb.edn
-
-Copy `maid.clj` and `bb.edn` to a directory in your PATH (e.g., `~/bin` or `/usr/local/bin`). Babashka will automatically find and use the adjacent `bb.edn` file for dependencies.
+The project uses a proper Babashka structure with:
+- Source code in `src/simonneutert/bb_maid.clj`
+- Tasks defined in `bb.edn` that call functions directly
+- Tests in `test/simonneutert/bb_maid_test.clj`
 
 ### Verify Installation
 
@@ -129,15 +123,17 @@ bb tasks
 
 **With bbin installation:**
 ```sh
-bb-maid clean /path/to/start [options]
+bb-maid clean [path] [options]
 ```
 
 **With local repository:**
 ```sh
-bb clean /path/to/start [options]
+bb clean [path] [options]
 ```
 
 The script will **recursively search** all subdirectories for files named `cleanup-maid-YYYY-MM-DD`, check if the date has passed, and prompt you before deleting each expired directory.
+
+**If no path is provided, it defaults to the current directory.**
 
 #### Options
 
@@ -149,13 +145,16 @@ The script will **recursively search** all subdirectories for files named `clean
 #### Examples
 
 ```sh
-# Dry run to see what would be deleted
+# Clean current directory (dry run)
+bb-maid clean --dry-run
+
+# Clean specific directory
 bb-maid clean ~/projects --dry-run
 
-# Only search 2 levels deep
-bb-maid clean ~/projects --max-depth 2
+# Only search 2 levels deep in current directory
+bb-maid clean --max-depth 2
 
-# Auto-confirm all deletions (be careful!)
+# Auto-confirm all deletions in a specific directory (be careful!)
 bb-maid clean ~/temp-files --yes
 
 # Combine options
@@ -170,15 +169,27 @@ To create a cleanup file that will expire after a specified duration:
 
 **With bbin installation:**
 ```sh
-bb-maid clean-in 7d
+bb-maid clean-in 7d [path]
 ```
 
 **With local repository:**
 ```sh
-bb clean-in 7d
+bb clean-in 7d [path]
 ```
 
 This command creates a file named `cleanup-maid-YYYY-MM-DD` with a date 7 days in the future. You can use any number of days (e.g., `1d`, `30d`, `90d`).
+
+**If no path is provided, it defaults to the current directory.**
+
+#### Examples
+
+```sh
+# Create cleanup file in current directory (expires in 7 days)
+bb-maid clean-in 7d
+
+# Create cleanup file in specific directory (expires in 30 days)
+bb-maid clean-in 30d ~/temp-projects
+```
 
 ### Example
 
@@ -247,6 +258,7 @@ Then restart your terminal or run `source ~/.bashrc`.
 
 ### Safety Features
 
+- **Directory Validation**: The script validates that the specified directory exists before attempting any operations. If a non-existent directory is provided, it will display a clear error message and exit gracefully.
 - **Symlinks**: The script does **NOT** follow symbolic links by default, preventing infinite loops and protecting content outside the target directory tree. When symlinks are encountered, they are:
   - **Logged with warnings**: Each skipped symlink is reported with a yellow warning message
   - **Summarized**: A final count shows total symlinks skipped
