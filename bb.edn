@@ -2,12 +2,15 @@
  :paths ["src"]
  :bbin/bin {bb-maid {:main-opts ["-m" "simonneutert.bb-maid"]}}
  :tasks {:requires ([simonneutert.bb-maid :as maid])
-         
+
          clean {:doc "Run cleanup script to remove expired directories"
                 :task (apply maid/-main "clean" *command-line-args*)}
-         
+
          clean-in {:doc "Create a cleanup file with expiration date (e.g., 'bb clean-in 7d')"
                    :task (apply maid/-main "clean-in" *command-line-args*)}
-         
+
+         gitignore {:doc "Add cleanup-maid-* pattern to .gitignore file"
+                    :task (apply maid/-main "gitignore" *command-line-args*)}
+
          test {:doc "Run tests"
                :task (shell "bb test-runner.clj")}}}

@@ -5,7 +5,7 @@ _bb-maid() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
 
     # Subcommands
-    local subcommands="clean clean-in"
+    local subcommands="clean clean-in gitignore"
     
     # Clean command options
     local clean_opts="--max-depth --follow-links --yes -y --dry-run -n"
@@ -42,6 +42,21 @@ _bb-maid() {
                 COMPREPLY=( $(compgen -W "1d 7d 14d 30d 60d 90d" -- ${cur}) )
                 return 0
             fi
+            
+            # If current word starts with -, suggest clean-in options
+            if [[ ${cur} == -* ]] ; then
+                COMPREPLY=( $(compgen -W "--gitignore" -- ${cur}) )
+                return 0
+            fi
+            
+            # Otherwise suggest directories
+            COMPREPLY=( $(compgen -d -- ${cur}) )
+            return 0
+            ;;
+        gitignore)
+            # Suggest directories
+            COMPREPLY=( $(compgen -d -- ${cur}) )
+            return 0
             ;;
     esac
 }

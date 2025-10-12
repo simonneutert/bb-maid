@@ -40,9 +40,13 @@ This way, your system stays clean, just like your fridge stays free of expired l
   - [Setup for Bash](#setup-for-bash)
 - [How It Works](#how-it-works)
   - [Safety Features](#safety-features)
-- [Development](#development)
-  - [Running Tests](#running-tests)
-  - [Adding Tests](#adding-tests)
+- [Git Integration](#git-integration)
+  - [Quick Setup](#quick-setup)
+  - [Manual Git Configuration](#manual-git-configuration)
+    - [Project-specific exclusion (recommended)](#project-specific-exclusion-recommended)
+    - [Global Git configuration](#global-git-configuration)
+  - [Verifying Git Exclusion](#verifying-git-exclusion)
+- [Contributing](#contributing)
 - [License](#license)
 
 ## Prerequisites
@@ -81,26 +85,7 @@ bb-maid
 
 #### Local Development
 
-1. Clone the repository:
-
-```sh
-git clone https://github.com/simonneutert/bb-maid.git
-cd bb-maid
-```
-
-2. Run tasks directly using babashka:
-
-```sh
-bb tasks        # List available tasks
-bb clean .      # Clean current directory
-bb clean-in 7d  # Create cleanup file
-bb test         # Run tests
-```
-
-The project uses a proper Babashka structure with:
-- Source code in `src/simonneutert/bb_maid.clj`
-- Tasks defined in `bb.edn` that call functions directly
-- Tests in `test/simonneutert/bb_maid_test.clj`
+For development setup, testing, and contributing, see the [Development Guide](README.DEVELOP.md).
 
 ### Verify Installation
 
@@ -228,6 +213,12 @@ bb-maid clean-in 7d
 
 # Create cleanup file in specific directory (expires in 30 days)
 bb-maid clean-in 30d ~/temp-projects
+
+# Create cleanup file AND add to .gitignore in one command
+bb-maid clean-in 7d --gitignore
+
+# Create in specific directory with gitignore
+bb-maid clean-in 14d ~/projects/temp --gitignore
 ```
 
 ### Example
@@ -306,43 +297,80 @@ Then restart your terminal or run `source ~/.bashrc`.
 - **Non-destructive by default**: The script only suggests deletions; you have final control.
 - **Dry-run mode**: Test operations safely with `--dry-run` before actual deletion.
 
-## Development
+## Git Integration
 
-### Running Tests
+Since cleanup files are temporary markers that indicate when directories should be deleted, you typically don't want to commit them to your Git repository. bb-maid provides simple commands to automatically handle Git exclusion:
 
-bb-maid includes a test suite using `clojure.test`. To run the tests:
+### Quick Setup
 
-```sh
-bb test
-```
-
-Or run the test runner directly:
+The easiest way to exclude cleanup files from Git is to use the `--gitignore` option when creating cleanup files:
 
 ```sh
-bb test-runner.clj
+# Create cleanup file and add to .gitignore in one command
+bb-maid clean-in 7d --gitignore
 ```
 
-The test suite covers:
-- Date parsing and validation
-- Duration string parsing (`7d`, `30d`, etc.)
-- Command-line option parsing
-- Option combinations and defaults
-- Symlink handling behavior (default: disabled, with --follow-links flag)
+Or add the pattern to an existing project:
 
-### Adding Tests
-
-Tests are located in `test/simonneutert/bb_maid_test.clj`. To add new tests:
-
-1. Add your test to the test namespace
-2. Run `bb test` to verify
-
-Example test:
-
-```clojure
-(deftest my-new-test
-  (testing "Description of what you're testing"
-    (is (= expected-value (function-call args)))))
+```sh
+# Add cleanup-maid-* pattern to .gitignore
+bb-maid gitignore
 ```
+
+**💡 Smart Git Detection**: When you run `bb-maid clean-in` in a Git repository without the `--gitignore` flag, bb-maid will automatically show you a helpful tip suggesting the `--gitignore` option:
+
+```
+┏ INFO
+┃ 💡 Tip: You're in a Git repository! Use --gitignore to automatically add cleanup files to .gitignore:
+┃        bb-maid clean-in 7d --gitignore
+┗
+```
+
+### Manual Git Configuration
+
+If you prefer to set up Git exclusion manually, here are platform-specific instructions:
+
+#### Project-specific exclusion (recommended)
+
+```sh
+# Add to project's .gitignore
+echo "cleanup-maid-*" >> .gitignore
+git add .gitignore
+git commit -m "Ignore cleanup-maid files"
+```
+
+#### Global Git configuration
+
+**macOS/Linux:**
+```sh
+echo "cleanup-maid-*" >> ~/.gitignore_global
+git config --global core.excludesfile ~/.gitignore_global
+```
+
+**Windows (PowerShell):**
+```powershell
+"cleanup-maid-*" | Out-File -FilePath "$env:USERPROFILE\.gitignore_global" -Encoding UTF8 -Append
+git config --global core.excludesfile "$env:USERPROFILE\.gitignore_global"
+```
+
+### Verifying Git Exclusion
+
+To test if exclusion works:
+
+1. Create a test cleanup file: `touch cleanup-maid-2025-12-31`
+2. Check Git status: `git status`
+3. The file should **not** appear in untracked files
+4. Clean up: `rm cleanup-maid-2025-12-31`
+
+**Note:** If cleanup files are already tracked in Git, remove them first:
+```sh
+git rm --cached cleanup-maid-*
+git commit -m "Remove tracked cleanup-maid files"
+```
+
+## Contributing
+
+Contributions are welcome! For development setup, testing, and contribution guidelines, please see the [Development Guide](README.DEVELOP.md).
 
 ## License
 
