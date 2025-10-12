@@ -5,6 +5,7 @@ _bb-maid() {
     commands=(
         'clean:Clean up expired directories'
         'clean-in:Create a cleanup file with expiration date'
+        'gitignore:Add cleanup-maid-* pattern to .gitignore'
     )
     durations=(
         '1d:1 day'
@@ -51,7 +52,14 @@ _bb-maid() {
                     esac
                     ;;
                 clean-in)
-                    _describe 'duration' durations
+                    # Mix of durations, directories and options
+                    _arguments \
+                        '1:duration:(1d 7d 14d 30d 60d 90d)' \
+                        '2:directory:_files -/' \
+                        '*::option:(--gitignore)'
+                    ;;
+                gitignore)
+                    _files -/
                     ;;
             esac
             ;;
