@@ -38,6 +38,7 @@ This way, your system stays clean, just like your fridge stays free of expired l
   - [What Gets Completed](#what-gets-completed)
   - [Setup for Zsh](#setup-for-zsh)
   - [Setup for Bash](#setup-for-bash)
+  - [Setup for Fish](#setup-for-fish)
 - [How It Works](#how-it-works)
   - [Safety Features](#safety-features)
 - [Git Integration](#git-integration)
@@ -277,6 +278,23 @@ source /path/to/your/clone/bb-maid/completions/bb-maid.bash
 ```
 
 Then restart your terminal or run `source ~/.bashrc`.
+
+### Setup for Fish
+
+Add this to your Fish config (`~/.config/fish/config.fish`):
+
+```fish
+# bb-maid tab completion
+# If installed via bbin:
+set -gx fish_complete_path ~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions $fish_complete_path
+```
+
+```fish
+# If cloned from git:
+set -gx fish_complete_path /path/to/your/clone/bb-maid/completions $fish_complete_path
+```
+
+Then restart your terminal or run `source ~/.config/fish/config.fish`.
 
 ## How It Works
 
