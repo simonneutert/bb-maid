@@ -106,6 +106,7 @@ Example test:
 Tab completion scripts are located in the `completions/` directory:
 - `_bb-maid` - Zsh completion
 - `bb-maid.bash` - Bash completion
+- `bb-maid.fish` - Fish completion
 
 When adding new commands or options, make sure to update both completion scripts.
 
@@ -122,4 +123,10 @@ autoload -Uz compinit && compinit
 ```sh
 # Temporarily load local completion
 source ./completions/bb-maid.bash
+```
+
+**Fish:**
+```fish
+# Temporarily load local completion
+set -gx fish_complete_path ./completions $fish_complete_path
 ```

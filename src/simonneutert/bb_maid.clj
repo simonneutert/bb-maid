@@ -1,8 +1,7 @@
 #!/usr/bin/env bb
 
 (ns simonneutert.bb-maid
-  (:require [clojure.java.io :as io]
-            [clojure.string :as str]
+  (:require [clojure.string :as str]
             [babashka.fs :as fs]
             [bling.core :refer [bling callout]]))
 
