@@ -23,6 +23,7 @@ This way, your system stays clean, just like your fridge stays free of expired l
 - [Prerequisites](#prerequisites)
 - [Installation](#installation)
   - [Quick Install with bbin (Recommended)](#quick-install-with-bbin-recommended)
+  - [Updating bb-maid](#updating-bb-maid)
   - [Manual Installation](#manual-installation)
     - [Local Development](#local-development)
   - [Verify Installation](#verify-installation)
@@ -81,6 +82,35 @@ bb-maid
 ```
 
 **Note:** If you don't have Java or prefer not to install it, use the manual installation methods below.
+
+### Updating bb-maid
+
+To update bb-maid to the latest version when installed via bbin:
+
+```sh
+bbin install io.github.simonneutert/bb-maid --force
+```
+
+**Important for tab completion users:** When updating via bbin, old cached versions may remain in `~/.gitlibs/`. To prevent completion path pollution:
+
+**Clean update (recommended):**
+```sh
+# 1. Uninstall current version
+bbin uninstall bb-maid
+
+# 2. Remove old cached versions
+rm -rf ~/.gitlibs/libs/io.github.simonneutert/bb-maid/
+
+# 3. Install latest version
+bbin install io.github.simonneutert/bb-maid
+
+# 4. For Fish users: Clean up completion paths
+fish -c 'set -gx fish_complete_path (string match -v "*bb-maid*" $fish_complete_path)'
+
+# 5. Restart your shell
+```
+
+**Note:** The tab completion setup instructions in this README include duplicate prevention checks (`if not contains` for Fish, glob patterns with `(N)` for Zsh/Bash) that help mitigate this issue in future updates.
 
 ### Manual Installation
 
@@ -286,15 +316,28 @@ Add this to your Fish config (`~/.config/fish/config.fish`):
 ```fish
 # bb-maid tab completion
 # If installed via bbin:
-set -gx fish_complete_path ~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions $fish_complete_path
+if not contains ~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions $fish_complete_path
+    set -gx fish_complete_path ~/.gitlibs/libs/io.github.simonneutert/bb-maid/*/completions $fish_complete_path
+end
 ```
 
 ```fish
 # If cloned from git:
-set -gx fish_complete_path /path/to/your/clone/bb-maid/completions $fish_complete_path
+if not contains /path/to/your/clone/bb-maid/completions $fish_complete_path
+    set -gx fish_complete_path /path/to/your/clone/bb-maid/completions $fish_complete_path
+end
 ```
 
 Then restart your terminal or run `source ~/.config/fish/config.fish`.
+
+**Note:** The `if not contains` check prevents duplicate paths when reopening Fish sessions. If you're updating from a previous version or have duplicate paths, clean them up in Fish:
+
+```fish
+# Remove all bb-maid paths from current session
+set -gx fish_complete_path (string match -v "*bb-maid*" $fish_complete_path)
+```
+
+Then restart Fish and the updated config will add the path cleanly.
 
 ## How It Works
 
